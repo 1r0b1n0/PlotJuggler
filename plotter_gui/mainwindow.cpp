@@ -1,6 +1,7 @@
 #include <functional>
 #include <stdio.h>
 #include <set>
+//#include <PythonQt/PythonQt.h>
 #include <QMouseEvent>
 #include <QDebug>
 #include <numeric>
@@ -21,6 +22,7 @@
 #include <QCommandLineParser>
 #include <QMovie>
 #include <QScrollBar>
+#include <QJSEngine>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -31,6 +33,7 @@
 #include "selectlistdialog.h"
 #include "aboutdialog.h"
 #include "PlotJuggler/plotdata.h"
+#include "add_math_channel.h"
 
 
 MainWindow::MainWindow(const QCommandLineParser &commandline_parser, QWidget *parent) :
@@ -1812,4 +1815,113 @@ void MainWindow::closeEvent(QCloseEvent *event)
     for(auto& it : _data_loader ) { delete it.second; }
     for(auto& it : _state_publisher ) { delete it.second; }
     for(auto& it : _data_streamer ) { delete it.second; }
+}
+
+void MainWindow::on_actionAddMathChannel_triggered()
+{
+    /*
+    // get the __main__ python module
+    PythonQtObjectPtr mainModule = PythonQt::self()->getMainModule();
+    // evaluate a simple python script and receive the result a qvariant:
+    QVariant result = mainModule.evalScript("19*2+4", Py_eval_input);
+    qDebug() << "get from python : " << result.toDouble();
+    */
+
+    /*
+    QJSEngine myEngine;
+    QJSValue three = myEngine.evaluate("1 + 2");
+    qDebug() << "get from qml : " << three.toNumber();
+    */
+
+    AddMathChannelDialog dialog(_mapped_plot_data, this);
+    if(dialog.exec() == QDialog::Accepted)
+    {
+        QJSEngine jsEngine;
+
+        {
+            QFile file("plotter_gui/resources/common.js");
+            //QFile file(":/js/resources/common.js")
+            file.open(QIODevice::ReadOnly);
+            QString commonData = QString::fromUtf8(file.readAll());
+            jsEngine.evaluate(commonData);
+        }
+
+        QString plotName = dialog.getName();
+        QString linkedData = dialog.getLinkedData();
+        QString jsGlobalVars = dialog.getGlobalVars();
+        QString mathEquationRaw = dialog.getEquation();
+
+        QList<PlotDataPtr> usedChannels;
+        QString mathEquationReplaced = mathEquationRaw;
+        while(true)
+        {
+            int pos1=mathEquationReplaced.indexOf("$$");
+            if(pos1 == -1)
+                break;
+
+            int pos2 = mathEquationReplaced.indexOf("$$", pos1+2);
+            if(pos2 == -1)
+            {
+                // TODO : syntax error
+                break;
+            }
+
+            QString channelName = mathEquationReplaced.mid(pos1+2, pos2-pos1-2);
+            QString jsExpression = QString("CHANNEL_VALUES[%1]").arg(usedChannels.size());
+            mathEquationReplaced.replace(QStringLiteral("$$%1$$").arg(channelName), jsExpression);
+
+            auto plotDataIt = _mapped_plot_data.numeric.find(channelName.toStdString());
+            if(plotDataIt == _mapped_plot_data.numeric.end())
+            {
+                throw std::runtime_error("invalid channel");
+                return;
+            }
+
+            usedChannels.push_back(plotDataIt->second);
+        }
+        //qDebug() << "final equation string : " << mathEquationReplaced;
+        jsEngine.evaluate(jsGlobalVars);
+        QString calcMethodStr = QString("function calc(x, y, CHANNEL_VALUES){with (Math){%1}}").arg(mathEquationReplaced);
+        jsEngine.evaluate(calcMethodStr);
+        QJSValue calcFct = jsEngine.evaluate("calc");
+
+        PlotDataPtr oldPlotData;
+        auto oldPlotDataIt = _mapped_plot_data.numeric.find(linkedData.toStdString());
+        if(oldPlotDataIt == _mapped_plot_data.numeric.end())
+        {
+            throw std::runtime_error("invalid linked data channel");
+        }
+        oldPlotData = oldPlotDataIt->second;
+
+        PlotDataPtr newPlotData = std::make_shared<PlotData>(plotName.toUtf8().constData());
+        for(size_t i=0;i<oldPlotData->size();++i)
+        {
+            const PlotData::Point &oldPoint = oldPlotData->at(i);
+
+            QJSValue channelValues = jsEngine.newArray(usedChannels.size());
+            for(int channelIndex = 0; channelIndex<usedChannels.size(); ++channelIndex)
+            {
+                PlotDataPtr &channelData = usedChannels[channelIndex];
+                double value;
+                int index = channelData->getIndexFromX(oldPoint.x);
+                if(index != -1)
+                    value = channelData->at(index).y;
+                else
+                    value = std::numeric_limits<double>::quiet_NaN();
+
+                channelValues.setProperty(channelIndex, QJSValue(value));
+            }
+
+            PlotData::Point newPoint;
+            newPoint.x = oldPoint.x;
+            //jsEngine.globalObject().setProperty("CHANNEL_VALUES", channelValues);
+            newPoint.y = calcFct.call({QJSValue(oldPoint.x), QJSValue(oldPoint.y), channelValues}).toNumber();
+
+            newPlotData->pushBack(newPoint);
+        }
+
+        _mapped_plot_data.numeric.emplace(plotName.toStdString(), newPlotData);
+        _curvelist_widget->addItem(plotName, false);
+        updateLeftTableValues();
+    }
 }

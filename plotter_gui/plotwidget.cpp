@@ -3,6 +3,8 @@
 #include <QDrag>
 #include <QMimeData>
 #include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <qwt_scale_widget.h>
 #include <qwt_plot_canvas.h>
 #include <qwt_scale_engine.h>
 #include <qwt_plot_layout.h>
@@ -255,6 +257,51 @@ void PlotWidget::buildLegend()
     _legend->setVisible( true );
 }
 
+bool PlotWidget::IsPointOnXAxis(const QPoint &p)
+{
+    QwtScaleWidget *bottomAxis = axisWidget(xBottom);
+    if(bottomAxis)
+    {
+        QPoint pInAxisWidget = bottomAxis->mapFrom(this, p);
+        return bottomAxis->rect().contains(pInAxisWidget);
+    }
+    return false;
+}
+
+void PlotWidget::drawPlotHover(PlotWidget::PlotHoverMode mode)
+{
+    if(mode != m_currentPlotHoverMode)
+    {
+        if(mode == PlotHoverMode::ON_CANVAS)
+        {
+            this->setCanvasBackground( QColor( 230, 230, 230 ) );
+        }
+        else
+        {
+            this->setCanvasBackground( QColor( 250, 250, 250 ) );
+        }
+
+        QwtScaleWidget *bottomAxis = axisWidget(xBottom);
+        if(bottomAxis)
+        {
+            QPalette pal = bottomAxis->palette();
+            if(mode == PlotHoverMode::ON_X_AXIS)
+            {
+                pal.setColor(QPalette::Background, QColor( 230, 230, 230 ));
+            }
+            else
+            {
+                pal.setColor(QPalette::Background, QColor( 250, 250, 250 ));
+            }
+            bottomAxis->setAutoFillBackground(true);
+            bottomAxis->setPalette(pal);
+        }
+
+        replot();
+        m_currentPlotHoverMode = mode;
+    }
+}
+
 
 
 PlotWidget::~PlotWidget()
@@ -400,6 +447,67 @@ void PlotWidget::dragEnterEvent(QDragEnterEvent *event)
     }
 }
 
+void PlotWidget::dragMoveEvent(QDragMoveEvent *event)
+{
+    /*
+    if(IsPointOnXAxis(event->pos()))
+    {
+        drawPlotHover(PlotHoverMode::ON_X_AXIS);
+    }
+    else
+    {
+        drawPlotHover(PlotHoverMode::ON_CANVAS);
+    }
+    */
+#if 0
+    QwtScaleWidget *bottomAxis = axisWidget(xBottom);
+    if(bottomAxis)
+    {
+        if(canvas()->mapFromParent(event->pos()).y() < canvas()->height())
+        {
+            qDebug() << "dragging on x, " << canvas()->mapFromParent(event->pos()).y() << " ; " << canvas()->height();
+
+            replot();
+        }
+        else
+        {
+            qDebug() << "dragging on y";
+
+            //bottomAxis->setPenWidth(5);
+            //replot();
+            QPalette pal = bottomAxis->palette();
+            pal.setColor(QPalette::Background, QColor( 230, 230, 230 ));
+            bottomAxis->setAutoFillBackground(true);
+            bottomAxis->setPalette(pal);
+
+
+            /*
+            QDrag *drag = qobject_cast<QDrag*>(event->source());
+            if(drag)
+            {
+                qDebug() << "got drag";
+                QPixmap cursor( QSize(160,30) );
+                cursor.fill(Qt::transparent);
+
+                QPainter painter;
+                painter.begin( &cursor);
+                painter.setPen(QColor(22, 22, 22));
+
+                QString text("set as new X axis");
+                painter.setFont( QFont("Arial", 14 ) );
+
+                painter.setBackground(Qt::transparent);
+                painter.drawText( QRect(0, 0, 160, 30), Qt::AlignHCenter | Qt::AlignVCenter, text );
+                painter.end();
+
+                drag->setDragCursor(cursor, Qt::MoveAction);
+            }
+            */
+        }
+    }
+#endif
+}
+
 
 void PlotWidget::dragLeaveEvent(QDragLeaveEvent *event)
 {
@@ -421,24 +529,28 @@ void PlotWidget::dropEvent(QDropEvent *event)
 
         if( format.contains( "curveslist/add_curve") )
         {
-            bool plot_added = false;
-            while (!stream.atEnd())
+            if(!IsPointOnXAxis(event->pos()))
             {
+                // the mouse dropped on the canvas
+                bool plot_added = false;
+                while (!stream.atEnd())
+                {
+                    QString curve_name;
+                    stream >> curve_name;
+                    addCurve( curve_name, true );
+                    plot_added = true;
+                }
+                if( plot_added ) {
+                    emit undoableChange();
+                }
+            }
+            else
+            {
+                // the mouse dropped on the x axis
                 QString curve_name;
                 stream >> curve_name;
-                addCurve( curve_name, true );
-                plot_added = true;
+                changeAxisX(curve_name);
             }
-            if( plot_added ) {
-                emit undoableChange();
-            }
-            event->acceptProposedAction();
-        }
-        else if( format.contains( "curveslist/new_X_axis") )
-        {
-            QString curve_name;
-            stream >> curve_name;
-            changeAxisX(curve_name);
             event->acceptProposedAction();
         }
         else if( format.contains( "plot_area") )

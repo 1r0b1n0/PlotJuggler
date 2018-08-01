@@ -12,6 +12,7 @@ QT5_WRAP_UI ( UI_SRC
     filterablelistwidget.ui
     tabbedplotwidget.ui
     axis_limits_dialog.ui
+    add_math_channel.ui
     ../common/selectlistdialog.ui
     )
 
@@ -33,6 +34,7 @@ SET( PLOTTER_SRC
     filterablelistwidget.cpp
     tabbedplotwidget.cpp
     subwindow.cpp
+    add_math_channel.cpp
 
     mainwindow.h
     realslider.h
@@ -42,13 +44,21 @@ SET( PLOTTER_SRC
     ../include/PlotJuggler/datastreamer_base.h
     )
 
+#include_directories(/usr/local/include/PythonQt)
+
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+
 add_executable(PlotJuggler ${PLOTTER_SRC} ${RES_SRC} ${UI_SRC} ${BACKWARD_SRC})
 
 target_link_libraries(PlotJuggler
     ${QT_LINK_LIBRARIES}
     colorwidgets
     qwt_static
-    ${BACKWARD_LIBS} )
+    ${BACKWARD_LIBS}
+    -lPythonQt
+    ${PYTHON_LIBRARIES}
+    )
 
 if(COMPILING_WITH_CATKIN)
     install(TARGETS PlotJuggler

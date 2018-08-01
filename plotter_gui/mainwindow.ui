@@ -516,7 +516,7 @@ background: white;
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -548,6 +548,16 @@ background: white;
     <addaction name="actionClearBuffer"/>
     <addaction name="separator"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="toolTip">
+     <string>Help (ALT+H)</string>
+    </property>
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionQuick_Help"/>
+    <addaction name="actionAbout"/>
+   </widget>
    <widget class="QMenu" name="menuPublishers">
     <property name="enabled">
      <bool>false</bool>
@@ -559,19 +569,16 @@ background: white;
      <string>Publishers</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menuHelp">
-    <property name="toolTip">
-     <string>Help (ALT+H)</string>
-    </property>
+   <widget class="QMenu" name="menuMath">
     <property name="title">
-     <string>Help</string>
+     <string>Math</string>
     </property>
-    <addaction name="actionQuick_Help"/>
-    <addaction name="actionAbout"/>
+    <addaction name="actionAddMathChannel"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuStreaming"/>
    <addaction name="menuPublishers"/>
+   <addaction name="menuMath"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionLoadData">
@@ -647,6 +654,11 @@ background: white;
   <action name="actionReloadPrevious">
    <property name="text">
     <string>Quick Data Reload</string>
+   </property>
+  </action>
+  <action name="actionAddMathChannel">
+   <property name="text">
+    <string>Add math channel</string>
    </property>
   </action>
  </widget>

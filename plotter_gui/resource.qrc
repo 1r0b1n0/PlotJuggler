@@ -47,4 +47,7 @@
     <qresource prefix="/splash">
         <file>resources/splash.jpg</file>
     </qresource>
+    <qresource prefix="/js">
+        <file>resources/common.js</file>
+    </qresource>
 </RCC>

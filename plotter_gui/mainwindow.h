@@ -118,6 +118,8 @@ private slots:
 
     void on_minimizeView();
 
+    void on_actionAddMathChannel_triggered();
+
 private:
 
     Ui::MainWindow *ui;

@@ -3,6 +3,7 @@
 #include <QSplashScreen>
 #include <QThread>
 #include <QCommandLineParser>
+//#include <PythonQt/PythonQt.h>
 
 QString getFunnySubtitle(){
 
@@ -34,6 +35,8 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("PlotJuggler");
+
+    //PythonQt::init();
 
     qApp->setStyleSheet(QString("QToolTip {\n"
                                 "   border: 1px solid black;\n"
@@ -90,8 +93,8 @@ int main(int argc, char *argv[])
      * Please don't do it.
      */
 
-    if( parser.isSet(nosplash_option) == false)
-    // if(false) // if you uncomment this line, a kitten will die somewhere in the world.
+    //if( parser.isSet(nosplash_option) == false)
+     if(false) // if you uncomment this line, a kitten will die somewhere in the world.
     {
         QPixmap main_pixmap(":/splash/resources/splash.jpg");
 

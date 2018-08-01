@@ -184,18 +184,37 @@ bool FilterableListWidget::eventFilter(QObject *object, QEvent *event)
     {
       QMouseEvent *mouse_event = static_cast<QMouseEvent*>(event);
 
-      _dragging = false;
-      _drag_start_pos = mouse_event->pos();
-
       if(mouse_event->button() == Qt::LeftButton )
       {
-        _newX_modifier = false;
+        if(mouse_event->modifiers() == Qt::ShiftModifier)
+        {
+            _newX_modifier = true;
+        }
+        else
+        {
+            _newX_modifier = false;
+        }
+
+        _dragging = false;
+        _drag_start_pos = mouse_event->pos();
       }
       else if(mouse_event->button() == Qt::RightButton )
       {
-        _newX_modifier = true;
+          QPoint mousepos = mouse_event->globalPos();
+          QModelIndex index = ui->tableWidget->indexAt(ui->tableWidget->mapFromGlobal(mousepos));
+          if(index.isValid())
+          {
+              qDebug() << "Editing equation : " << ui->tableWidget->model()->data(index).toString();
+              QMenu menu(this);
+              menu.addAction("Test");
+              menu.addAction("Test2");
+              menu.exec(mouse_event->globalPos());
+
+              return false;
+          }
       }
-      else {
+      else
+      {
         return false;
       }
       return QWidget::eventFilter(object,event);
