@@ -35,19 +35,17 @@ SET( PLOTTER_SRC
     tabbedplotwidget.cpp
     subwindow.cpp
     add_math_channel.cpp
+    custom_equation.cpp
+    PlotDataModel.cpp
 
     mainwindow.h
     realslider.h
     utils.h
     ../common/selectlistdialog.h
     ../include/PlotJuggler/plotdata.h
+    ../include/PlotJuggler/PlotDataModel.h
     ../include/PlotJuggler/datastreamer_base.h
     )
-
-#include_directories(/usr/local/include/PythonQt)
-
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
 
 add_executable(PlotJuggler ${PLOTTER_SRC} ${RES_SRC} ${UI_SRC} ${BACKWARD_SRC})
 
@@ -56,8 +54,6 @@ target_link_libraries(PlotJuggler
     colorwidgets
     qwt_static
     ${BACKWARD_LIBS}
-    -lPythonQt
-    ${PYTHON_LIBRARIES}
     )
 
 if(COMPILING_WITH_CATKIN)

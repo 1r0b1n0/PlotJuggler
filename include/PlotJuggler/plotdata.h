@@ -53,7 +53,7 @@ public:
 
   virtual ~PlotDataGeneric() {}
 
-  std::string name() const { return _name; }
+  const std::string &name() const { return _name; }
 
   virtual size_t size() const;
 
@@ -79,6 +79,8 @@ protected:
   std::deque<Point> _points;
 
   QColor _color_hint;
+
+  //bool _isCustomEquation = false;
 
 private:
 
