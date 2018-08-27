@@ -19,6 +19,7 @@
 #include "PlotJuggler/dataloader_base.h"
 #include "PlotJuggler/statepublisher_base.h"
 #include "PlotJuggler/datastreamer_base.h"
+#include "custom_equation.h"
 
 namespace Ui {
 class MainWindow;
@@ -122,6 +123,10 @@ private slots:
 
     void on_actionAddMathChannel_triggered();
 
+    void addMathPlot(const std::string &linked_name);
+
+    void editMathPlot(const std::string &plot_name);
+
     void updateTimeSlider();
 
     void updateTimeOffset();
@@ -152,6 +157,7 @@ private:
     void forEachWidget(std::function<void(PlotWidget*)> op);
 
     PlotDataMapRef  _mapped_plot_data;
+    std::unordered_map<std::string, CustomEquationPtr> _custom_equations;
 
     void rearrangeGridLayout();
 
@@ -205,6 +211,8 @@ private:
     void savePluginState(QDomDocument &doc);
 
     std::tuple<double,double,int> calculateVisibleRangeX();
+
+    void addOrEditMathPlot(const std::string &name, bool edit);
     
 protected:
 

@@ -8,6 +8,7 @@
 #include <QStandardItemModel>
 #include <QTableView>
 
+#include "custom_equation.h"
 #include "tree_completer.h"
 
 class CustomSortedTableItem;
@@ -21,7 +22,7 @@ class FilterableListWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit FilterableListWidget(QWidget *parent = 0);
+    explicit FilterableListWidget(const std::unordered_map<std::string, CustomEquationPtr>& custom_equations, QWidget *parent = 0);
     ~FilterableListWidget();
 
     int rowCount() const;
@@ -74,6 +75,7 @@ private slots:
     void on_checkBoxHideSecondColumn_toggled(bool checked);
 
     void removeSelectedCurves();
+    void askToRemoveCurves(QStringList names);
 
 private:
 
@@ -95,10 +97,14 @@ private:
 
     QTableView* _table_view;
 
+    const std::unordered_map<std::string, CustomEquationPtr>& _custom_equations;
+
 signals:
 
     void hiddenItemsChanged();
 
+    void createMathPlot(const std::string& linked_plot);
+    void editMathPlot(const std::string& plot_name);
     void deleteCurve(const std::string& curve_name);
 
 };

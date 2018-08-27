@@ -55,7 +55,7 @@ MainWindow::MainWindow(const QCommandLineParser &commandline_parser, QWidget *pa
 
     _test_option = (commandline_parser.isSet("test"));
 
-    _curvelist_widget = new FilterableListWidget(this);
+    _curvelist_widget = new FilterableListWidget(_custom_equations, this);
     _streamer_signal_mapper = new QSignalMapper(this);
 
     ui->setupUi(this);
@@ -83,6 +83,12 @@ MainWindow::MainWindow(const QCommandLineParser &commandline_parser, QWidget *pa
 
     connect(_curvelist_widget, &FilterableListWidget::deleteCurve,
             this, &MainWindow::deleteDataOfSingleCurve );
+
+    connect(_curvelist_widget, &FilterableListWidget::createMathPlot,
+            this, &MainWindow::addMathPlot);
+
+    connect(_curvelist_widget, &FilterableListWidget::editMathPlot,
+            this, &MainWindow::editMathPlot);
 
     connect(_curvelist_widget->getView()->verticalScrollBar(),
             &QScrollBar::valueChanged,
@@ -875,6 +881,8 @@ void MainWindow::deleteDataOfSingleCurve(const std::string& curve_name)
     {
         ui->actionDeleteAllData->setEnabled( false );
     }
+
+    _custom_equations.erase(curve_name);
 }
 
 void MainWindow::deleteDataMultipleCurves(const std::vector<std::string> &curves_name)
@@ -1440,6 +1448,62 @@ std::tuple<double, double, int> MainWindow::calculateVisibleRangeX()
         max_steps = 1;
     }
     return std::tuple<double,double,int>( min_time, max_time, max_steps );
+}
+
+void MainWindow::addOrEditMathPlot(const std::string &name, bool edit)
+{
+    AddMathChannelDialog dialog(_mapped_plot_data, this);
+    if(!edit)
+    {
+        // add
+        dialog.setLinkedPlotName(QString::fromStdString(name));
+    }
+    else
+    {
+        auto it = _custom_equations.find(name);
+        if(it == _custom_equations.end())
+        {
+            qWarning("failed to find custom equation");
+            return;
+        }
+        dialog.setFromCustomEquation(it->second);
+    }
+
+    if(dialog.exec() == QDialog::Accepted)
+    {
+        QString qplotName = dialog.getName();
+        std::string plotName = qplotName.toStdString();
+        CustomEquationPtr eq = dialog.getCustomEquationData();
+        PlotDataPtr newData = dialog.getNewPlotData();
+
+        if(!edit)
+        {
+            _mapped_plot_data.addNumeric(plotName);
+        }
+
+        PlotData *dstPlotData = &_mapped_plot_data.numeric.at(plotName);
+
+        // we have to copy element by element
+        // this is ugly, but without a pointer we have no choice
+        dstPlotData->clear();
+        for(size_t i=0;i<newData->size();++i)
+        {
+            dstPlotData->pushBack(newData->at(i));
+        }
+
+        // keep data for reference
+        _custom_equations[plotName] = eq;
+        if(!edit)
+        {
+            _curvelist_widget->addItem(qplotName);
+        }
+        updateLeftTableValues();
+
+        if(edit)
+        {
+            updateDataAndReplot();
+        }
+    }
 }
 
 void MainWindow::onActionLoadLayoutFromFile(QString filename, bool load_data)
@@ -2094,4 +2158,14 @@ void MainWindow::on_actionAddMathChannel_triggered()
         //_curvelist_widget->addItem(plotName, false);
         updateLeftTableValues();
     }
+}
+
+void MainWindow::addMathPlot(const std::string& linked_name)
+{
+    addOrEditMathPlot(linked_name, false);
+}
+
+void MainWindow::editMathPlot(const std::string &plot_name)
+{
+    addOrEditMathPlot(plot_name, true);
 }
