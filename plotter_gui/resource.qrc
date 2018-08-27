@@ -50,4 +50,7 @@
     <qresource prefix="/js">
         <file>resources/common.js</file>
     </qresource>
+    <qresource prefix="/">
+        <file>resources/snippets.xml</file>
+    </qresource>
 </RCC>

@@ -14,7 +14,6 @@ class CustomEquation
 public:
     CustomEquation(const std::string &linkedPlot, const std::string &plotName, const QString &globalVars, const QString &equation);
 
-    //static CustomEquationPtr createNew(const std::string &linkedPlot, PlotDataMapRef &plotData, QWidget *parent);
     void calc(PlotDataMapRef &plotData, PlotData &out);
 
     const std::string& getName();

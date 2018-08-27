@@ -1258,8 +1258,8 @@ void PlotWidget::on_convertToXY_triggered(bool)
     {
         QMessageBox::warning(0, tr("Warning"),
                              tr("To show a XY plot, you must first provide an alternative X axis.\n"
-                                "You can do this drag'n dropping a curve using the RIGHT mouse button "
-                                "instead of the left mouse button.") );
+                                "You can do this drag'n dropping a curve on the bottom x axis "
+                                "of a plot area.") );
 
         if( _current_transform == TimeseriesQwt::noTransform)
         {

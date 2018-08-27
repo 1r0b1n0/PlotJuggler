@@ -13,31 +13,9 @@ CustomEquation::CustomEquation(const std::string &linkedPlot, const std::string 
 
 }
 
-/*
-CustomEquationPtr CustomEquation::createNew(const std::string &linkedPlot, PlotDataMapRef &plotData, QWidget *parent)
-{
-
-    AddMathChannelDialog dialog(plotData, parent);
-    dialog.setLinkedPlotName(QString::fromStdString(linkedPlot));
-    if(dialog.exec() == QDialog::Accepted)
-    {
-        try {
-            CustomEquationPtr ret;
-            ret.reset(new CustomEquation(linkedPlot, dialog.getName().toStdString(), dialog.getGlobalVars(), dialog.getEquation()));
-            ret->recalc(plotData);
-
-            return ret;
-        } catch (std::runtime_error e) {
-            QMessageBox::critical(parent, "Error", "Failed to create custom equation : " + QString::fromStdString(e.what()));
-        }
-    }
-
-    return CustomEquationPtr();
-}
-*/
-
 void CustomEquation::calc(PlotDataMapRef &plotData, PlotData &out)
 {
+    QString qLinkedPlot = QString::fromStdString(_linkedPlot);
     QJSEngine jsEngine;
 
     {
@@ -63,16 +41,25 @@ void CustomEquation::calc(PlotDataMapRef &plotData, PlotData &out)
         }
 
         QString channelName = mathEquationReplaced.mid(pos1+2, pos2-pos1-2);
-        QString jsExpression = QString("CHANNEL_VALUES[%1]").arg(usedChannels.size());
-        mathEquationReplaced.replace(QStringLiteral("$$%1$$").arg(channelName), jsExpression);
 
-        auto plotDataIt = plotData.numeric.find(channelName.toStdString());
-        if(plotDataIt == plotData.numeric.end())
+        if(channelName == qLinkedPlot)
         {
-            throw std::runtime_error("invalid channel");
+            // special case : user entered linkedPlot ; no need to add another channel
+            mathEquationReplaced.replace(QStringLiteral("$$%1$$").arg(channelName), QStringLiteral("y"));
         }
+        else
+        {
+            QString jsExpression = QString("CHANNEL_VALUES[%1]").arg(usedChannels.size());
+            mathEquationReplaced.replace(QStringLiteral("$$%1$$").arg(channelName), jsExpression);
 
-        usedChannels.push_back(&plotDataIt->second);
+            auto plotDataIt = plotData.numeric.find(channelName.toStdString());
+            if(plotDataIt == plotData.numeric.end())
+            {
+                throw std::runtime_error("invalid channel");
+            }
+
+            usedChannels.push_back(&plotDataIt->second);
+        }
     }
     //qDebug() << "final equation string : " << mathEquationReplaced;
     jsEngine.evaluate(_globalVars);
@@ -109,7 +96,7 @@ void CustomEquation::calc(PlotDataMapRef &plotData, PlotData &out)
 
         PlotData::Point newPoint;
         newPoint.x = oldPoint.x;
-        //jsEngine.globalObject().setProperty("CHANNEL_VALUES", channelValues);
+        //jsEngine.globalObject().setProperty("CHANNEL_VALUES", channelValues); // this would be another method to share the array
         QJSValue jsData = calcFct.call({QJSValue(oldPoint.x), QJSValue(oldPoint.y), channelValues});
         if(jsData.isError())
         {
@@ -140,3 +127,5 @@ const QString &CustomEquation::getEquation()
 {
     return _calcEquation;
 }
+
+

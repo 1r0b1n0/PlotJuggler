@@ -15,6 +15,12 @@ class AddMathChannelDialog : public QDialog
 {
     Q_OBJECT
 
+    struct SnippetData{
+        QString name;
+        QString globalVars;
+        QString equation;
+    };
+
 public:
     explicit AddMathChannelDialog(PlotDataMapRef &plotMapData, QWidget *parent);
     virtual ~AddMathChannelDialog() override;
@@ -32,7 +38,15 @@ public:
 
 private slots:
 
+    void on_curvesListWidget_doubleClicked(const QModelIndex &index);
+
+    void on_snippetsListWidget_currentRowChanged(int currentRow);
+
+    void on_snippetsListWidget_doubleClicked(const QModelIndex &index);
+
 private:
+    static const std::vector<SnippetData> getSnippets();
+
     PlotDataMapRef &_plotMapData;
     Ui::AddMathChannelDialog *ui;
 

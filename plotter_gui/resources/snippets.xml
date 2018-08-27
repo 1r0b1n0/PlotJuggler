@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<snippets>
+    <snippet name="A + B">
+        <global></global>
+        <equation>$$PLOT_A$$ + $$PLOT_B$$</equation>
+    </snippet>
+    
+    <snippet name="1st derivate">
+        <global>
+var prevX = 0
+var prevY = 0
+        </global>
+        <equation>
+dx = x - prevX
+dy = y - prevY
+prevX = x
+prevY = y
+
+return dy/dx
+        </equation>
+    </snippet>
+    
+    <snippet name="1st order low pass">
+        <global>
+var prevY = 0
+var alpha = 0.1
+        </global>
+        <equation>
+prevY = alpha * y + (1.-alpha) * prevY
+
+return prevY
+        </equation>
+    </snippet>
+</snippets>
