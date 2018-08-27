@@ -27,7 +27,6 @@ AddMathChannelDialog::~AddMathChannelDialog()
 void AddMathChannelDialog::setLinkedPlotName(const QString &linkedPlotName)
 {
     ui->linkedChannelCombobox->setCurrentText(linkedPlotName);
-    ui->linkedChannelCombobox->setEnabled(false);
 }
 
 void AddMathChannelDialog::accept()

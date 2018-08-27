@@ -121,8 +121,6 @@ private slots:
 
     void on_minimizeView();
 
-    void on_actionAddMathChannel_triggered();
-
     void addMathPlot(const std::string &linked_name);
 
     void editMathPlot(const std::string &plot_name);
