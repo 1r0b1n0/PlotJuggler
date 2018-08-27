@@ -15,7 +15,7 @@ class AddMathChannelDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AddMathChannelDialog(const PlotDataMap &plotData, QWidget *parent);
+    explicit AddMathChannelDialog(PlotDataMapRef &plotData, QWidget *parent);
     ~AddMathChannelDialog();
     QString getLinkedData() const;
     QString getGlobalVars() const;
@@ -25,7 +25,7 @@ public:
 private slots:
 
 private:
-    const PlotDataMap &_plotData;
+    PlotDataMapRef &_plotData;
     Ui::AddMathChannelDialog *ui;
 };
 

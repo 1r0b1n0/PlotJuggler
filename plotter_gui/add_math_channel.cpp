@@ -3,7 +3,7 @@
 #include <QDebug>
 #include "plotwidget.h"
 
-AddMathChannelDialog::AddMathChannelDialog(const PlotDataMap &plotData, QWidget *parent) :
+AddMathChannelDialog::AddMathChannelDialog(PlotDataMapRef &plotData, QWidget *parent) :
     QDialog(parent),
     _plotData(plotData),
     ui(new Ui::AddMathChannelDialog)

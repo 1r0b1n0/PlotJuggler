@@ -38,7 +38,7 @@ public slots:
 
 private slots:
 
-    void onTrackerTimeUpdated(double absolute_time );
+    void onTrackerTimeUpdated(double absolute_time , bool do_replot);
 
     void onTrackerMovedFromWidget(QPointF pos );
 
@@ -102,7 +102,9 @@ private slots:
 
     void updateLeftTableValues();
 
-    void deleteDataOfSingleCurve(const QString &curve_name);
+    void deleteDataOfSingleCurve(const std::string &curve_name);
+
+    void deleteDataMultipleCurves(const std::vector<std::string> &curves_name);
 
     void on_pushButtonRemoveTimeOffset_toggled(bool checked);
 
@@ -119,6 +121,12 @@ private slots:
     void on_minimizeView();
 
     void on_actionAddMathChannel_triggered();
+
+    void updateTimeSlider();
+
+    void updateTimeOffset();
+
+    void buildDummyData();
 
 private:
 
@@ -143,11 +151,7 @@ private:
 
     void forEachWidget(std::function<void(PlotWidget*)> op);
 
-    void updateTimeSlider();
-
-    void buildDummyData();
-
-    PlotDataMap    _mapped_plot_data;
+    PlotDataMapRef  _mapped_plot_data;
 
     void rearrangeGridLayout();
 
@@ -186,7 +190,7 @@ private:
 
     void createTabbedDialog(QString suggest_win_name, PlotMatrix *first_tab);
 
-    void importPlotDataMap(const PlotDataMap &new_data, bool delete_older);
+    void importPlotDataMap(PlotDataMapRef &new_data, bool delete_older);
 
     bool isStreamingActive() const ;
 
@@ -199,6 +203,8 @@ private:
     void loadPluginState(const QDomElement &root);
     
     void savePluginState(QDomDocument &doc);
+
+    std::tuple<double,double,int> calculateVisibleRangeX();
     
 protected:
 
@@ -206,7 +212,7 @@ protected:
 
     QTimer *_replot_timer;
 signals:
-    void requestRemoveCurveByName(const QString& name);
+    void requestRemoveCurveByName(const std::string& name);
 
     void activateStreamingMode( bool active);
 

@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QStringList>
 #include <QCheckBox>
+#include <QShortcut>
 #include "PlotJuggler/optional.hpp"
 #include <ros_type_introspection/ros_introspection.hpp>
 
@@ -51,6 +52,8 @@ private slots:
 
     void on_checkBoxPrefix_toggled(bool checked);
 
+    void on_maximumSizeHelp_pressed();
+
 private:
 
     void closeEvent(QCloseEvent *event) override;
@@ -58,10 +61,13 @@ private:
     QStringList _topic_list;
     QStringList _default_selected_topics;
 
+    QShortcut _select_all;
+    QShortcut _deselect_all;
+
     Ui::dialogSelectRosTopics *ui;
 
 };
 
-nonstd::optional<double> FlatContainedContainHeaderStamp(const RosIntrospection::RenamedValues& flat_container);
+nonstd::optional<double> FlatContainerContainHeaderStamp(const RosIntrospection::RenamedValues& flat_container);
 
 #endif // DIALOG_SELECT_ROS_TOPICS_H

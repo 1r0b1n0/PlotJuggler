@@ -9,6 +9,8 @@
 #include <QSettings>
 #include <QHeaderView>
 #include <QDebug>
+#include <QMessageBox>
+#include <QAbstractItemView>
 
 #include "dialog_select_ros_topics.h"
 #include "rule_editing.h"
@@ -20,7 +22,9 @@ DialogSelectRosTopics::DialogSelectRosTopics(const std::vector<std::pair<QString
                                              QWidget *parent) :
     QDialog(parent),
     ui(new Ui::dialogSelectRosTopics),
-    _default_selected_topics(default_selected_topics)
+    _default_selected_topics(default_selected_topics),
+    _select_all(QKeySequence(Qt::CTRL + Qt::Key_A), this),
+    _deselect_all(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_A), this)
 {
 
     auto flags = this->windowFlags();
@@ -31,6 +35,7 @@ DialogSelectRosTopics::DialogSelectRosTopics(const std::vector<std::pair<QString
     QSettings settings( "IcarusTechnology", "PlotJuggler");
     ui->checkBoxEnableRules->setChecked(     settings.value("DialogSelectRosTopics.enableRules", true ).toBool());
     ui->checkBoxUseHeaderStamp->setChecked(  settings.value("DialogSelectRosTopics.useHeaderStamp", true ).toBool());
+    ui->spinBoxArraySize->setValue( settings.value( "DialogSelectRosTopics.maxArraySize", 100).toInt() );
     restoreGeometry(settings.value("DialogSelectRosTopics.geometry").toByteArray());
 
     if( _default_selected_topics.isEmpty())
@@ -53,6 +58,16 @@ DialogSelectRosTopics::DialogSelectRosTopics(const std::vector<std::pair<QString
         ui->listRosTopics->selectRow(0);
     }
     ui->listRosTopics->setFocus();
+
+    _select_all.setContext(Qt::WindowShortcut);
+    _deselect_all.setContext(Qt::WindowShortcut);
+
+    connect( &_select_all, &QShortcut::activated,
+             ui->listRosTopics, &QAbstractItemView::selectAll );
+
+    connect( &_deselect_all, &QShortcut::activated,
+             ui->listRosTopics, &QAbstractItemView::clearSelection );
+
 }
 
 void DialogSelectRosTopics::updateTopicList(std::vector<std::pair<QString, QString> > topic_list )
@@ -168,6 +183,7 @@ void DialogSelectRosTopics::on_buttonBox_accepted()
     settings.setValue("DialogSelectRosTopics.useHeaderStamp", ui->checkBoxUseHeaderStamp->isChecked() );
     settings.setValue("DialogSelectRosTopics.geometry", saveGeometry());
     settings.setValue("DialogSelectRosTopics.selectedItems", selected_topics );
+    settings.setValue("DialogSelectRosTopics.maxArraySize", ui->spinBoxArraySize->value());
 }
 
 void DialogSelectRosTopics::on_listRosTopics_itemSelectionChanged()
@@ -195,7 +211,7 @@ void DialogSelectRosTopics::closeEvent(QCloseEvent *event)
     settings.setValue("DialogSelectRosTopics.geometry", saveGeometry());
 }
 
-nonstd::optional<double> FlatContainedContainHeaderStamp(const RosIntrospection::RenamedValues& renamed_value)
+nonstd::optional<double> FlatContainerContainHeaderStamp(const RosIntrospection::RenamedValues& renamed_value)
 {
     const char* ID = "/header/stamp";
     const int renamed_count = renamed_value.size();
@@ -235,3 +251,25 @@ void DialogSelectRosTopics::on_checkBoxPrefix_toggled(bool checked)
 {
     ui->linePrefix->setEnabled(checked);
 }
+
+void DialogSelectRosTopics::on_maximumSizeHelp_pressed()
+{
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Help");
+    msgBox.setText("Maximum Size of Arrays:\n\n"
+                   "Arrays which size is larger than the maximum, are simple skipped. "
+                   "Nevertheless, they are still stored in memory and they can be republished!\n\n"
+                   "This parameter is used to prevent the user from loading huge arrays, "
+                   "such as images, pointclouds, maps, etc.\n"
+                   "The term 'array' refers to the array in a message field,\n\n"
+                   " See http://wiki.ros.org/msg.\n\n"
+                   "This is NOT about the duration of a time series!\n\n"
+                   "MOTIVATION: pretend that a user tries to load a RGB image, which probably contains "
+                   "a few millions pixels.\n"
+                   "Plotjuggler would naively create a single time series for each pixel of the image! "
+                   "That makes no sense, of course, and it would probably freeze your system.\n"
+                   );
+    msgBox.exec();
+}
+
+

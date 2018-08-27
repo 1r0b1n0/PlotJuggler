@@ -3,7 +3,7 @@
 #include <QColorDialog>
 
 
-CurveColorPick::CurveColorPick(const std::map<QString, QColor> &mapped_colors, QWidget *parent) :
+CurveColorPick::CurveColorPick(const std::map<std::string, QColor> &mapped_colors, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::CurveColorPick),
     _any_modified(false),
@@ -11,9 +11,9 @@ CurveColorPick::CurveColorPick(const std::map<QString, QColor> &mapped_colors, Q
 {
     ui->setupUi(this);
 
-    for(auto it : _mapped_colors)
+    for(auto& it : _mapped_colors)
     {
-        QListWidgetItem* item = new QListWidgetItem( it.first );
+        QListWidgetItem* item = new QListWidgetItem( QString::fromStdString( it.first) );
         item->setForeground( it.second );
         ui->listWidget->addItem( item );
     }
@@ -55,7 +55,7 @@ void CurveColorPick::on_pushButtonUndo_clicked()
     for(int row = 0; row < ui->listWidget->count(); row++)
     {
         QListWidgetItem *item = ui->listWidget->item(row);
-        const QString& name = item->text();
+        const std::string name = item->text().toStdString();
         const QColor& color = _mapped_colors.find(name)->second;
 
         item->setForeground( color );

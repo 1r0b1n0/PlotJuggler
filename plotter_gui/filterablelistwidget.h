@@ -4,16 +4,17 @@
 #include <QWidget>
 #include <QAction>
 #include <QListWidget>
-#include <QTableWidget>
 #include <QMouseEvent>
 #include <QStandardItemModel>
+#include <QTableView>
 
+#include "tree_completer.h"
+
+class CustomSortedTableItem;
 
 namespace Ui {
 class FilterableListWidget;
 }
-
-class TreeModelCompleter;
 
 class FilterableListWidget : public QWidget
 {
@@ -27,17 +28,32 @@ public:
 
     void clear();
 
-    void addItem(const QString& item_name, bool sort_columns);
+    void addItem(const QString& item_name);
 
-    void sortColumns();
+    void refreshColumns();
 
-    QList<int> findRowsByName(const QString& text) const;
+    int findRowByName(const std::string &text) const;
 
     void removeRow(int row);
 
+    void rebuildEntireList(const std::vector<std::string> &names);
+
     void updateFilter();
 
-    const QTableWidget * getTable() const;
+    QStandardItemModel *getTable() const
+    {
+        return _model;
+    }
+
+    QTableView *getView() const
+    {
+        return _table_view;
+    }
+
+    bool is2ndColumnHidden() const
+    {
+        return getView()->isColumnHidden(1);
+    }
 
     virtual void keyPressEvent(QKeyEvent * event) override;
 
@@ -46,6 +62,8 @@ private slots:
     void on_radioContains_toggled(bool checked);
 
     void on_radioRegExp_toggled(bool checked);
+
+    void on_radioPrefix_toggled(bool checked);
 
     void on_checkBoxCaseSensitive_toggled(bool checked);
 
@@ -57,8 +75,6 @@ private slots:
 
     void removeSelectedCurves();
 
-    void on_radioPrefix_toggled(bool checked);
-
 private:
 
     Ui::FilterableListWidget *ui;
@@ -67,21 +83,23 @@ private:
 
     bool _newX_modifier, _dragging;
 
-    QStandardItemModel* _tree_model;
-
     TreeModelCompleter* _completer;
 
     bool eventFilter(QObject *object, QEvent *event);
 
     void updateTreeModel();
-    
-    void addToCompletionTree(QTableWidgetItem *item);
+
+    bool _completer_need_update;
+
+    QStandardItemModel* _model;
+
+    QTableView* _table_view;
 
 signals:
 
     void hiddenItemsChanged();
 
-    void deleteCurve(QString curve_name);
+    void deleteCurve(const std::string& curve_name);
 
 };
 

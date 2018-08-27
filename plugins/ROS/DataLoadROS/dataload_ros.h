@@ -20,7 +20,7 @@ public:
     DataLoadROS();
     virtual const std::vector<const char*>& compatibleFileExtensions() const override;
 
-    virtual PlotDataMap readDataFromFile(const QString& file_name, bool use_previous_configuration ) override;
+    virtual PlotDataMapRef readDataFromFile(const QString& file_name, bool use_previous_configuration ) override;
 
     virtual const char* name() const override { return "DataLoad ROS bags"; }
 
@@ -45,6 +45,11 @@ private:
 
     bool _use_renaming_rules;
 
+    std::vector<std::pair<QString, QString>> getAndRegisterAllTopics();
+
+    void storeMessageInstancesAsUserDefined(PlotDataMapRef& plot_map,
+                                            const std::string &prefix,
+                                            bool use_header_stamp);
 };
 
 #endif // DATALOAD_CSV_H

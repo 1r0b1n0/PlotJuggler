@@ -12,6 +12,7 @@
 #include <QAction>
 #include <QMessageBox>
 #include <QMenu>
+#include <iostream>
 #include <limits>
 #include "removecurvedialog.h"
 #include "curvecolorpick.h"
@@ -33,12 +34,12 @@ void PlotWidget::setDefaultRangeX()
     {
         double min =  std::numeric_limits<double>::max();
         double max = -std::numeric_limits<double>::max();
-        for (auto it: _mapped_data.numeric )
+        for (auto& it: _mapped_data.numeric )
         {
-            const PlotDataPtr& data = it.second;
-            if( data->size() > 0){
-                double A = data->at(0).x;
-                double B = data->at( data->size() -1 ).x;
+            const PlotData& data = it.second;
+            if( data.size() > 0){
+                double A = data.front().x;
+                double B = data.back().x;
                 if( A < min) min = A;
                 if( B > max) max = B;
             }
@@ -47,7 +48,16 @@ void PlotWidget::setDefaultRangeX()
     }
 }
 
-PlotWidget::PlotWidget(PlotDataMap &datamap, QWidget *parent):
+void PlotWidget::changeBackgroundColor(QColor color)
+{
+    if( this->canvasBackground().color() != color)
+    {
+        this->setCanvasBackground( color );
+        this->replot();
+    }
+}
+
+PlotWidget::PlotWidget(PlotDataMapRef &datamap, QWidget *parent):
     QwtPlot(parent),
     _zoomer( 0 ),
     _magnifier(0 ),
@@ -309,9 +319,9 @@ PlotWidget::~PlotWidget()
 
 }
 
-bool PlotWidget::addCurve(const QString &name, bool do_replot)
+bool PlotWidget::addCurve(const std::string &name)
 {
-    auto it = _mapped_data.numeric.find( name.toStdString() );
+    auto it = _mapped_data.numeric.find( name );
     if( it == _mapped_data.numeric.end())
     {
         return false;
@@ -322,91 +332,91 @@ bool PlotWidget::addCurve(const QString &name, bool do_replot)
         return false;
     }
 
-    PlotDataPtr data = it->second;
+    PlotData& data = it->second;
 
+    auto curve = std::make_shared< QwtPlotCurve >( QString::fromStdString( name ) );
+
+    TimeseriesQwt* plot_qwt = new TimeseriesQwt( &data, _time_offset );
+
+    curve->setPaintAttribute( QwtPlotCurve::ClipPolygons, true );
+    curve->setPaintAttribute( QwtPlotCurve::FilterPointsAggressive, true );
+
+    plot_qwt->setAlternativeAxisX( _axisX );
+
+    if( _current_transform != TimeseriesQwt::noTransform)
     {
-        auto curve = std::shared_ptr< QwtPlotCurve >( new QwtPlotCurve(name) );
-
-        TimeseriesQwt* plot_qwt = new TimeseriesQwt( data );
-        plot_qwt->setTimeOffset( _time_offset );
-
-        curve->setPaintAttribute( QwtPlotCurve::ClipPolygons, true );
-        curve->setPaintAttribute( QwtPlotCurve::FilterPointsAggressive, true );
-
-        plot_qwt->setAlternativeAxisX( _axisX );
-
-        if( _current_transform != TimeseriesQwt::noTransform)
-        {
-            plot_qwt->setTransform( _current_transform );
-        }
-
-        curve->setData( plot_qwt );
-
-        if( _show_line_and_points ) {
-            curve->setStyle( QwtPlotCurve::LinesAndDots);
-        }
-        else{
-            curve->setStyle( QwtPlotCurve::Lines);
-        }
-
-        QColor color = data->getColorHint();
-        if( color == Qt::black)
-        {
-            color = randomColorHint();
-            data->setColorHint(color);
-        }
-        curve->setPen( color,  0.8 );
-        curve->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-
-        curve->attach( this );
-        _curve_list.insert( std::make_pair(name, curve));
-
-        auto marker = new QwtPlotMarker;
-        _point_marker.insert( std::make_pair(name, marker) );
-        marker->attach( this );
-        marker->setVisible( isXYPlot() );
-
-        QwtSymbol *sym = new QwtSymbol(
-                    QwtSymbol::Diamond,
-                    Qt::red, color,
-                    QSize(10,10));
-
-        marker->setSymbol(sym);
+        plot_qwt->setTransform( _current_transform );
     }
 
-    zoomOut(false);
+    curve->setData( plot_qwt );
 
-    if( do_replot )
-    {
-        replot();
+    if( _show_line_and_points ) {
+        curve->setStyle( QwtPlotCurve::LinesAndDots);
     }
+    else{
+        curve->setStyle( QwtPlotCurve::Lines);
+    }
+
+    QColor color = data.getColorHint();
+    if( color == Qt::black)
+    {
+        color = randomColorHint();
+        data.setColorHint(color);
+    }
+    curve->setPen( color,  0.8 );
+    curve->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+    curve->attach( this );
+    _curve_list.insert( std::make_pair(name, curve));
+
+    auto marker = new QwtPlotMarker;
+    _point_marker.insert( std::make_pair(name, marker) );
+    marker->attach( this );
+    marker->setVisible( isXYPlot() );
+
+    QwtSymbol *sym = new QwtSymbol(
+                QwtSymbol::Diamond,
+                Qt::red, color,
+                QSize(10,10));
+
+    marker->setSymbol(sym);
 
     return true;
 }
 
-void PlotWidget::removeCurve(const QString &name)
+void PlotWidget::removeCurve(const std::string &name)
 {
     auto it = _curve_list.find(name);
     if( it != _curve_list.end() )
     {
-        auto curve = it->second;
+        auto& curve = it->second;
         curve->detach();
-        replot();
         _curve_list.erase( it );
 
-        _point_marker[name]->detach();
-        _point_marker.erase( name );
+        auto marker_it = _point_marker.find(name);
+        if( marker_it != _point_marker.end() )
+        {
+            auto marker = marker_it->second;
+            if( marker ){
+                marker->detach();
+            }
+            _point_marker.erase(marker_it);
+        }
+
+        emit curveListChanged();
     }
-    if( isXYPlot() && _axisX->name() == name.toStdString())
+    if( isXYPlot() && _axisX->name() == name)
     {
-        _axisX = PlotDataPtr();
-        for(auto it : _curve_list)
+        _axisX = nullptr;
+        for(auto& it : _curve_list)
         {
             TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
             series->setAlternativeAxisX(_axisX);
         }
         _action_noTransform->trigger();
+        emit curveListChanged();
     }
+
 }
 
 bool PlotWidget::isEmpty() const
@@ -414,15 +424,14 @@ bool PlotWidget::isEmpty() const
     return _curve_list.empty();
 }
 
-const std::map<QString, std::shared_ptr<QwtPlotCurve> > &PlotWidget::curveList() const
+const std::map<std::string, std::shared_ptr<QwtPlotCurve> > &PlotWidget::curveList() const
 {
     return _curve_list;
 }
 
 void PlotWidget::dragEnterEvent(QDragEnterEvent *event)
 {
-    this->setCanvasBackground( QColor( 230, 230, 230 ) );
-    replot();
+    changeBackgroundColor( QColor( 230, 230, 230 ) );
 
     const QMimeData *mimeData = event->mimeData();
     QStringList mimeFormats = mimeData->formats();
@@ -509,15 +518,14 @@ void PlotWidget::dragMoveEvent(QDragMoveEvent *event)
 }
 
 
-void PlotWidget::dragLeaveEvent(QDragLeaveEvent *event)
+void PlotWidget::dragLeaveEvent(QDragLeaveEvent*)
 {
-  this->setCanvasBackground( QColor( 250, 250, 250 ) );
-  replot();
+    changeBackgroundColor( QColor( 250, 250, 250 ) );
 }
 
 void PlotWidget::dropEvent(QDropEvent *event)
 {
-    this->setCanvasBackground( QColor( 250, 250, 250 ) );
+    setCanvasBackground( QColor( 250, 250, 250 ) );
 
     const QMimeData *mimeData = event->mimeData();
     QStringList mimeFormats = mimeData->formats();
@@ -531,33 +539,38 @@ void PlotWidget::dropEvent(QDropEvent *event)
         {
             if(!IsPointOnXAxis(event->pos()))
             {
-                // the mouse dropped on the canvas
-                bool plot_added = false;
-                while (!stream.atEnd())
-                {
-                    QString curve_name;
-                    stream >> curve_name;
-                    addCurve( curve_name, true );
-                    plot_added = true;
-                }
-                if( plot_added ) {
-                    emit undoableChange();
-                }
+                bool curve_added = false;
+	            while (!stream.atEnd())
+	            {
+	                QString curve_name;
+	                stream >> curve_name;
+	                bool added = addCurve( curve_name.toStdString() );
+	                curve_added = curve_added || added;
+	            }
+	            if( curve_added )
+	            {
+	                zoomOut(false);
+	                replot();
+	                emit curveListChanged();
+	                emit undoableChange();
+	            }
+	            event->acceptProposedAction();
             }
             else
             {
-                // the mouse dropped on the x axis
-                QString curve_name;
-                stream >> curve_name;
-                changeAxisX(curve_name);
+				QString curve_name;
+	            stream >> curve_name;
+	            changeAxisX(curve_name);
+	            event->acceptProposedAction();
             }
-            event->acceptProposedAction();
+            
         }
         else if( format.contains( "plot_area") )
         {
             QString source_name;
             stream >> source_name;
             PlotWidget* source_plot = static_cast<PlotWidget*>( event->source() );
+
             emit swapWidgetsRequested( source_plot, this );
             event->acceptProposedAction();
         }
@@ -566,18 +579,21 @@ void PlotWidget::dropEvent(QDropEvent *event)
 
 void PlotWidget::detachAllCurves()
 {
-    for(auto it: _curve_list)   { it.second->detach(); }
-    for(auto it: _point_marker) { it.second->detach(); }
+    for(auto& it: _curve_list)   { it.second->detach(); }
+    for(auto& it: _point_marker) { it.second->detach(); }
 
     if( isXYPlot() )
     {
-        _axisX = PlotDataPtr();
+        _axisX = nullptr;
         _action_noTransform->trigger();
     }
 
-    _curve_list.erase(_curve_list.begin(), _curve_list.end());
-    _point_marker.erase(_point_marker.begin(), _point_marker.end());
+    _curve_list.clear();
+    _point_marker.clear();
     emit _tracker->setPosition( _tracker->actualPosition() );
+
+    emit curveListChanged();
+
     replot();
 }
 
@@ -602,12 +618,12 @@ QDomElement PlotWidget::xmlSaveState( QDomDocument &doc) const
     }
     plot_el.appendChild(limitY_el);
 
-    for(auto it=_curve_list.begin(); it != _curve_list.end(); ++it)
+    for(auto& it: _curve_list)
     {
-        QString name = it->first;
-        auto curve = it->second;
+        auto& name = it.first;
+        auto& curve = it.second;
         QDomElement curve_el = doc.createElement("curve");
-        curve_el.setAttribute( "name",name);
+        curve_el.setAttribute( "name", QString::fromStdString( name ));
         curve_el.setAttribute( "R", curve->pen().color().red());
         curve_el.setAttribute( "G", curve->pen().color().green());
         curve_el.setAttribute( "B", curve->pen().color().blue());
@@ -632,7 +648,7 @@ QDomElement PlotWidget::xmlSaveState( QDomDocument &doc) const
 
         if( _axisX ){
             transform.setAttribute("value", "XYPlot" );
-            transform.setAttribute("axisX",  _axisX->name().c_str() );
+            transform.setAttribute("axisX",  QString::fromStdString( _axisX->name() ) );
         }
         else{
             transform.setAttribute("value", "noTransform" );
@@ -650,7 +666,7 @@ bool PlotWidget::xmlLoadState(QDomElement &plot_widget)
 {
     QDomElement curve;
 
-    std::set<QString> added_curve_names;
+    std::set<std::string> added_curve_names;
 
     QDomElement transform = plot_widget.firstChildElement( "transform" );
     if( !transform.isNull()    )
@@ -688,19 +704,22 @@ bool PlotWidget::xmlLoadState(QDomElement &plot_widget)
 
     static bool warning_message_shown = false;
 
+    bool curve_added = false;
+
     for (  curve = plot_widget.firstChildElement( "curve" )  ;
            !curve.isNull();
            curve = curve.nextSiblingElement( "curve" ) )
     {
-        QString curve_name = curve.attribute("name");
+        std::string curve_name = curve.attribute("name").toStdString();
         int R = curve.attribute("R").toInt();
         int G = curve.attribute("G").toInt();
         int B = curve.attribute("B").toInt();
         QColor color(R,G,B);
 
-        if(  _mapped_data.numeric.find(curve_name.toStdString()) != _mapped_data.numeric.end() )
+        if(  _mapped_data.numeric.find(curve_name) != _mapped_data.numeric.end() )
         {
-            addCurve(curve_name, false);
+            auto added = addCurve( curve_name );
+            curve_added = curve_added || added;
             _curve_list[curve_name]->setPen( color, 1.0);
             added_curve_names.insert(curve_name );
         }
@@ -708,19 +727,19 @@ bool PlotWidget::xmlLoadState(QDomElement &plot_widget)
         {
             QMessageBox::warning(this, "Warning",
                                  tr("Can't find one or more curves.\n"
-                                    "This message will be shown only once.").arg(curve_name) );
+                                    "This message will be shown only once.") );
             warning_message_shown = true;
         }
     }
 
     bool curve_removed = true;
 
-    while( curve_removed)
+    while( curve_removed )
     {
         curve_removed = false;
         for(auto& it: _curve_list)
         {
-            QString curve_name = it.first;
+            auto& curve_name = it.first;
             if( added_curve_names.find( curve_name ) == added_curve_names.end())
             {
                 removeCurve( curve_name );
@@ -728,6 +747,12 @@ bool PlotWidget::xmlLoadState(QDomElement &plot_widget)
                 break;
             }
         }
+    }
+
+    if( curve_removed || curve_added)
+    {
+        replot();
+        emit curveListChanged();
     }
 
     //-----------------------------------------
@@ -747,14 +772,14 @@ bool PlotWidget::xmlLoadState(QDomElement &plot_widget)
         {
             _action_noTransform->trigger();
         }
-//        else if(trans_value == "XYPlot")
-//        {
-//            QString axisX_name = transform.attribute("axisX");
-//            if( axisX_name.size()>0)
-//            {
-//                changeAxisX( axisX_name );
-//            }
-//        }
+        //        else if(trans_value == "XYPlot")
+        //        {
+        //            QString axisX_name = transform.attribute("axisX");
+        //            if( axisX_name.size()>0)
+        //            {
+        //                changeAxisX( axisX_name );
+        //            }
+        //        }
     }
     //-----------------------------------------
 
@@ -808,23 +833,22 @@ void PlotWidget::reloadPlotData()
     {
         auto it = _mapped_data.numeric.find( _axisX->name() );
         if( it != _mapped_data.numeric.end() ){
-            _axisX = it->second;
+            _axisX = &(it->second);
         }
         else{
-            _axisX = PlotDataPtr();
+            _axisX = nullptr;
         }
     }
 
     for (auto& curve_it: _curve_list)
     {
         std::shared_ptr<QwtPlotCurve>& curve_data = curve_it.second;
-        const std::string curve_name = curve_it.first.toStdString();
+        const auto& curve_name = curve_it.first;
 
         auto it = _mapped_data.numeric.find( curve_name );
         if( it != _mapped_data.numeric.end())
         {
-            TimeseriesQwt* new_plotqwt = new TimeseriesQwt( it->second );
-            new_plotqwt->setTimeOffset( _time_offset );
+            TimeseriesQwt* new_plotqwt = new TimeseriesQwt( &(it->second), _time_offset );
             new_plotqwt->setAlternativeAxisX( _axisX );
             new_plotqwt->setTransform( _current_transform );
             curve_data->setData( new_plotqwt );
@@ -864,9 +888,9 @@ void PlotWidget::enableTracker(bool enable)
 void PlotWidget::setTrackerPosition(double abs_time)
 {
     if( isXYPlot()){
-        for (auto it: _curve_list)
+        for (auto& it: _curve_list)
         {
-            QString name = it.first;
+            auto& name = it.first;
             TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
             auto pointXY = series->sampleFromTime(abs_time);
             if( pointXY ){
@@ -883,7 +907,7 @@ void PlotWidget::setTrackerPosition(double abs_time)
 void PlotWidget::on_changeTimeOffset(double offset)
 {
     _time_offset = offset;
-    for (auto it: _curve_list)
+    for (auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         series->setTimeOffset(offset);
@@ -897,7 +921,7 @@ PlotData::RangeTime PlotWidget::getMaximumRangeX() const
     double left   =  std::numeric_limits<double>::max();
     double right  = -std::numeric_limits<double>::max();
 
-    for (auto it: _curve_list)
+    for(auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         auto range_X = series->getVisualizationRangeX();
@@ -930,9 +954,9 @@ PlotData::RangeValue  PlotWidget::getMaximumRangeY( PlotData::RangeTime range_X,
     double top    = -std::numeric_limits<double>::max();
     double bottom =  std::numeric_limits<double>::max();
 
-    for(auto it = _curve_list.begin(); it != _curve_list.end(); ++it)
+    for(auto& it: _curve_list)
     {
-        TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it->second->data() );
+        TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
 
         const auto max_range_X = series->getVisualizationRangeX();
         if( !max_range_X ) continue;
@@ -1027,9 +1051,9 @@ void PlotWidget::launchRemoveCurveDialog()
     RemoveCurveDialog* dialog = new RemoveCurveDialog(this);
     auto prev_curve_count = _curve_list.size();
 
-    for(auto it = _curve_list.begin(); it != _curve_list.end(); ++it)
+    for(auto& it: _curve_list)
     {
-        dialog->addCurveName( it->first );
+        dialog->addCurveName( QString::fromStdString( it.first ) );
     }
 
     dialog->exec();
@@ -1042,12 +1066,12 @@ void PlotWidget::launchRemoveCurveDialog()
 
 void PlotWidget::on_changeColorsDialog_triggered()
 {
-    std::map<QString,QColor> color_by_name;
+    std::map<std::string,QColor> color_by_name;
 
-    for(auto it = _curve_list.begin(); it != _curve_list.end(); ++it)
+    for(auto& it: _curve_list)
     {
-        const QString& curve_name = it->first;
-        auto curve = it->second;
+        const auto& curve_name = it.first;
+        auto& curve = it.second;
         color_by_name.insert(std::make_pair( curve_name, curve->pen().color() ));
     }
 
@@ -1066,10 +1090,10 @@ void PlotWidget::on_changeColorsDialog_triggered()
 
 void PlotWidget::on_changeColor(QString curve_name, QColor new_color)
 {
-    auto it = _curve_list.find(curve_name);
+    auto it = _curve_list.find(curve_name.toStdString());
     if( it != _curve_list.end())
     {
-        auto curve = it->second;
+        auto& curve = it->second;
         if( curve->pen().color() != new_color)
         {
             curve->setPen( new_color, 1.0 );
@@ -1081,9 +1105,9 @@ void PlotWidget::on_changeColor(QString curve_name, QColor new_color)
 void PlotWidget::on_showPoints_triggered(bool checked)
 {
     _show_line_and_points = checked;
-    for(auto it = _curve_list.begin(); it != _curve_list.end(); ++it)
+    for(auto& it: _curve_list)
     {
-        auto curve = it->second;
+        auto& curve = it.second;
         if( _show_line_and_points )
         {
             curve->setStyle( QwtPlotCurve::LinesAndDots);
@@ -1161,7 +1185,7 @@ void PlotWidget::on_noTransform_triggered(bool checked )
     enableTracker(true);
     if(_current_transform ==  TimeseriesQwt::noTransform) return;
 
-    for (auto it :_curve_list)
+    for(auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         series->setTransform( TimeseriesQwt::noTransform );
@@ -1179,7 +1203,7 @@ void PlotWidget::on_1stDerivativeTransform_triggered(bool checked)
     enableTracker(true);
     if(_current_transform ==  TimeseriesQwt::firstDerivative) return;
 
-    for (auto it :_curve_list)
+    for(auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         series->setTransform( TimeseriesQwt::firstDerivative );
@@ -1203,7 +1227,7 @@ void PlotWidget::on_2ndDerivativeTransform_triggered(bool checked)
     enableTracker(true);
     if(_current_transform ==  TimeseriesQwt::secondDerivative) return;
 
-    for (auto it :_curve_list)
+    for(auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         series->setTransform( TimeseriesQwt::secondDerivative );
@@ -1230,20 +1254,33 @@ bool PlotWidget::isXYPlot() const
 
 void PlotWidget::on_convertToXY_triggered(bool)
 {
-    enableTracker(false);
-
     if( !_axisX )
     {
         QMessageBox::warning(0, tr("Warning"),
                              tr("To show a XY plot, you must first provide an alternative X axis.\n"
                                 "You can do this drag'n dropping a curve using the RIGHT mouse button "
                                 "instead of the left mouse button.") );
+
+        if( _current_transform == TimeseriesQwt::noTransform)
+        {
+            _action_noTransform->trigger();
+        }
+        else if( _current_transform == TimeseriesQwt::firstDerivative)
+        {
+            _action_1stDerivativeTransform->trigger();
+        }
+        else if( _current_transform == TimeseriesQwt::secondDerivative)
+        {
+            _action_2ndDerivativeTransform->trigger();
+        }
         return;
     }
 
+    enableTracker(false);
+
     _current_transform = TimeseriesQwt::XYPlot;
 
-    for (auto it :_curve_list)
+    for(auto& it: _curve_list)
     {
         TimeseriesQwt* series = static_cast<TimeseriesQwt*>( it.second->data() );
         series->setAlternativeAxisX( _axisX );
@@ -1253,7 +1290,7 @@ void PlotWidget::on_convertToXY_triggered(bool)
 
     QFont font_footer;
     font_footer.setPointSize(10);
-    QwtText text( _axisX->name().c_str() );
+    QwtText text( QString::fromStdString( _axisX->name()) );
     text.setFont(font_footer);
 
     this->setFooter( text );
@@ -1267,7 +1304,7 @@ void PlotWidget::changeAxisX(QString curve_name)
     auto it = _mapped_data.numeric.find( curve_name.toStdString() );
     if( it != _mapped_data.numeric.end())
     {
-        _axisX = it->second;
+        _axisX = &(it->second);
         _action_phaseXY->trigger();
     }
     else{
@@ -1377,7 +1414,7 @@ bool PlotWidget::eventFilter(QObject *obj, QEvent *event)
             }
         }
     }break;
-    //---------------------------------
+        //---------------------------------
     case QEvent::MouseMove:
     {
         QMouseEvent *mouse_event = static_cast<QMouseEvent*>(event);
@@ -1391,18 +1428,24 @@ bool PlotWidget::eventFilter(QObject *obj, QEvent *event)
             emit trackerMoved(pointF);
         }
     }break;
-    //---------------------------------
+
+    case QEvent::Leave:
+    {
+        changeBackgroundColor( QColor( 250, 250, 250 ) );
+    }break;
+        //---------------------------------
     case QEvent::MouseButtonRelease :
     {
+        changeBackgroundColor( QColor( 250, 250, 250 ) );
         QApplication::restoreOverrideCursor();
     }break;
-    //---------------------------------
+        //---------------------------------
     case QEvent::KeyPress:
     {
-//        QKeyEvent *key_event = static_cast<QKeyEvent*>(event);
-//        qDebug() << key_event->key();
-     }break;
-    //---------------------------------
+        //        QKeyEvent *key_event = static_cast<QKeyEvent*>(event);
+        //        qDebug() << key_event->key();
+    }break;
+        //---------------------------------
     case QEvent::Paint :
     {
         if ( obj == this->canvas())
@@ -1432,16 +1475,16 @@ bool PlotWidget::eventFilter(QObject *obj, QEvent *event)
     }break;
 
     case QEvent::DragEnter: {
-      this->dragEnterEvent( static_cast<QDragEnterEvent*>(event) );
+        this->dragEnterEvent( static_cast<QDragEnterEvent*>(event) );
     } break;                         // drag moves into widget
     case QEvent::DragMove:  {
-      this->dragMoveEvent(  static_cast<QDragMoveEvent*>(event ) );
+        this->dragMoveEvent(  static_cast<QDragMoveEvent*>(event ) );
     } break;
     case QEvent::DragLeave: {
-      this->dragLeaveEvent( static_cast<QDragLeaveEvent*>(event ) );
+        this->dragLeaveEvent( static_cast<QDragLeaveEvent*>(event ) );
     } break;
     case QEvent::Drop:      {
-      this->dropEvent( static_cast<QDropEvent*>(event ) );
+        this->dropEvent( static_cast<QDropEvent*>(event ) );
     } break;
 
 

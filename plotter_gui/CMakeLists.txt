@@ -36,14 +36,15 @@ SET( PLOTTER_SRC
     subwindow.cpp
     add_math_channel.cpp
     custom_equation.cpp
-    PlotDataModel.cpp
+#    PlotDataModel.cpp
+    tree_completer.h
 
     mainwindow.h
     realslider.h
     utils.h
     ../common/selectlistdialog.h
     ../include/PlotJuggler/plotdata.h
-    ../include/PlotJuggler/PlotDataModel.h
+#    ../include/PlotJuggler/PlotDataModel.h
     ../include/PlotJuggler/datastreamer_base.h
     )
 

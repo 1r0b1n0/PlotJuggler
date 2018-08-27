@@ -27,14 +27,12 @@ class PlotWidget : public QwtPlot
 
 public:
 
-    PlotWidget(PlotDataMap& datamap, QWidget *parent=0);
+    PlotWidget(PlotDataMapRef& datamap, QWidget *parent=0);
     virtual ~PlotWidget();
-
-    bool addCurve(const QString&  name, bool do_replot );
 
     bool isEmpty() const;
 
-    const std::map<QString, std::shared_ptr<QwtPlotCurve> > &curveList() const;
+    const std::map<std::string, std::shared_ptr<QwtPlotCurve> > &curveList() const;
 
     QDomElement xmlSaveState(QDomDocument &doc) const;
 
@@ -54,6 +52,8 @@ public:
 
     bool isXYPlot() const;
 
+    void changeBackgroundColor(QColor color);
+
 protected:
     virtual void dragEnterEvent(QDragEnterEvent *event) override;
     virtual void dragMoveEvent(QDragMoveEvent *event) override;
@@ -66,6 +66,7 @@ signals:
     void rectChanged(PlotWidget* self, QRectF rect );
     void undoableChange();
     void trackerMoved(QPointF pos);
+    void curveListChanged();
 
 public slots:
 
@@ -81,7 +82,7 @@ public slots:
 
     void on_zoomOutVertical_triggered(bool emit_signal = true);
 
-    void removeCurve(const QString& name);
+    void removeCurve(const std::string &name);
 
     void activateLegent(bool activate);
 
@@ -119,8 +120,8 @@ private slots:
 
 
 private:
-    std::map<QString, std::shared_ptr<QwtPlotCurve> > _curve_list;
-    std::map<QString, QwtPlotMarker*> _point_marker;
+    std::map<std::string, std::shared_ptr<QwtPlotCurve> > _curve_list;
+    std::map<std::string, QwtPlotMarker*> _point_marker;
 
     QAction *_action_removeCurve;
     QAction *_action_removeAllCurves;
@@ -143,10 +144,13 @@ private:
     QwtPlotLegendItem* _legend;
     QwtPlotGrid* _grid;
 
-    PlotDataMap& _mapped_data;
+    PlotDataMapRef& _mapped_data;
     TimeseriesQwt::Transform _current_transform;
 
+    bool addCurve(const std::string &name);
+
     void buildActions();
+
     void buildLegend();
 
     bool IsPointOnXAxis(const QPoint &p);
@@ -165,7 +169,7 @@ private:
 
     void setDefaultRangeX();
 
-    PlotDataPtr _axisX;
+    const PlotData* _axisX;
 
     double _time_offset;
 
