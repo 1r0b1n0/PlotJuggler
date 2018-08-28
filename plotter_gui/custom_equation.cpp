@@ -18,13 +18,7 @@ void CustomEquation::calc(PlotDataMapRef &plotData, PlotData &out)
     QString qLinkedPlot = QString::fromStdString(_linkedPlot);
     QJSEngine jsEngine;
 
-    {
-        QFile file("plotter_gui/resources/common.js");
-        //QFile file(":/js/resources/common.js")
-        file.open(QIODevice::ReadOnly);
-        QString commonData = QString::fromUtf8(file.readAll());
-        jsEngine.evaluate(commonData);
-    }
+    addJavascriptDependencies(jsEngine);
 
     QList<PlotData*> usedChannels;
     QString mathEquationReplaced = _calcEquation;
@@ -62,10 +56,19 @@ void CustomEquation::calc(PlotDataMapRef &plotData, PlotData &out)
         }
     }
     //qDebug() << "final equation string : " << mathEquationReplaced;
-    jsEngine.evaluate(_globalVars);
-    QString calcMethodStr = QString("function calc(x, y, CHANNEL_VALUES){with (Math){%1}}").arg(mathEquationReplaced);
+    QJSValue globalVarResult = jsEngine.evaluate(_globalVars);
+    if(globalVarResult.isError())
+    {
+        throw std::runtime_error("JS Engine : " + globalVarResult.toString().toStdString());
+    }
+
+    QString calcMethodStr = QString("function calc(x, y, CHANNEL_VALUES){with (Math){\n%1\n}}").arg(mathEquationReplaced);
     jsEngine.evaluate(calcMethodStr);
     QJSValue calcFct = jsEngine.evaluate("calc");
+    if(calcFct.isError())
+    {
+        throw std::runtime_error("JS Engine : " + calcFct.toString().toStdString());
+    }
 
     PlotData *oldPlotData;
     auto oldPlotDataIt = plotData.numeric.find(_linkedPlot);
@@ -126,6 +129,24 @@ const QString &CustomEquation::getGlobalVars()
 const QString &CustomEquation::getEquation()
 {
     return _calcEquation;
+}
+
+void CustomEquation::addJavascriptDependencies(QJSEngine &engine)
+{
+    static QStringList files{":/js/resources/common.js", ":/js/resources/quaternion.js", "plotter_gui/resources/geographiclib.min.js" };
+    for(QString fileName : files)
+    {
+        QFile file(fileName);
+        if(file.open(QIODevice::ReadOnly))
+        {
+            QString commonData = QString::fromUtf8(file.readAll());
+            QJSValue out = engine.evaluate(commonData);
+            if(out.isError())
+            {
+                qWarning() << "JS Engine : " << out.toString();
+            }
+        }
+    }
 }
 
 

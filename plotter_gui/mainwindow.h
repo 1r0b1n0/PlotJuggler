@@ -125,6 +125,8 @@ private slots:
 
     void editMathPlot(const std::string &plot_name);
 
+    void refreshMathPlot(const std::string &plot_name);
+
     void updateTimeSlider();
 
     void updateTimeOffset();

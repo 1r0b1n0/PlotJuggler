@@ -90,6 +90,9 @@ MainWindow::MainWindow(const QCommandLineParser &commandline_parser, QWidget *pa
     connect(_curvelist_widget, &FilterableListWidget::editMathPlot,
             this, &MainWindow::editMathPlot);
 
+    connect(_curvelist_widget, &FilterableListWidget::refreshMathPlot,
+            this, &MainWindow::refreshMathPlot);
+
     connect(_curvelist_widget->getView()->verticalScrollBar(),
             &QScrollBar::valueChanged,
             this, &MainWindow::updateLeftTableValues );
@@ -2056,4 +2059,27 @@ void MainWindow::addMathPlot(const std::string& linked_name)
 void MainWindow::editMathPlot(const std::string &plot_name)
 {
     addOrEditMathPlot(plot_name, true);
+}
+
+void MainWindow::refreshMathPlot(const std::string &plot_name)
+{
+    try{
+        auto it = _custom_equations.find(plot_name);
+        if(it == _custom_equations.end())
+        {
+            qWarning("failed to find custom equation");
+            return;
+        }
+        CustomEquationPtr ce = it->second;
+        QString qplotName = QString::fromStdString(plot_name);
+
+        PlotData &dstPlotData = _mapped_plot_data.numeric.at(plot_name);
+        ce->calc(_mapped_plot_data, dstPlotData);
+        updateLeftTableValues();
+        updateDataAndReplot();
+    }
+    catch(std::runtime_error e)
+    {
+        QMessageBox::critical(this, "error", "Failed to refresh data : " + QString::fromStdString(e.what()));
+    }
 }

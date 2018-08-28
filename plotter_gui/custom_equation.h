@@ -7,6 +7,7 @@
 #include <include/PlotJuggler/plotdata.h>
 
 class CustomEquation;
+class QJSEngine;
 typedef std::shared_ptr<CustomEquation> CustomEquationPtr;
 
 class CustomEquation
@@ -22,6 +23,8 @@ public:
     const QString& getEquation();
 
 private:
+    void addJavascriptDependencies(QJSEngine &engine);
+
     std::string _linkedPlot;
     std::string _plotName;
     QString _globalVars;

@@ -191,17 +191,15 @@ bool FilterableListWidget::eventFilter(QObject *object, QEvent *event)
 
 	            QMenu menu(this);
                 QAction *createPlotAction = menu.addAction("Create math plot");
-                QAction *editPlotAction = editPlotAction = menu.addAction("Edit math plot");
+                QAction *editPlotAction = menu.addAction("Edit math plot");
+                QAction *refreshPlotAction = menu.addAction("Refresh math plot");
                 menu.addSeparator();
                 QAction *deleteAction = menu.addAction("Delete");
 
                 if(_custom_equations.count(plotName.toStdString()) == 0)
                 {
                     editPlotAction->setVisible(false);
-                }
-                else
-                {
-                    editPlotAction->setVisible(true);
+                    refreshPlotAction->setVisible(false);
                 }
 
                 QAction *userAction = menu.exec(mouse_event->globalPos());
@@ -212,6 +210,10 @@ bool FilterableListWidget::eventFilter(QObject *object, QEvent *event)
                 else if(userAction == editPlotAction)
                 {
                     emit editMathPlot(plotName.toStdString());
+                }
+                else if(userAction == refreshPlotAction)
+                {
+                    emit refreshMathPlot(plotName.toStdString());
                 }
                 else if(userAction == deleteAction)
                 {

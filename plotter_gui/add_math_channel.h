@@ -52,6 +52,7 @@ private:
 
     PlotDataPtr _newPlotData;
     CustomEquationPtr _customEquation;
+    bool _isNewPlot = true;
 };
 
 #endif // ADDMATHCHANNELDIALOG_H

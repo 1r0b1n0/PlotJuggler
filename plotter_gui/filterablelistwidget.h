@@ -105,6 +105,7 @@ signals:
 
     void createMathPlot(const std::string& linked_plot);
     void editMathPlot(const std::string& plot_name);
+    void refreshMathPlot(const std::string& curve_name);
     void deleteCurve(const std::string& curve_name);
 
 };

@@ -21,9 +21,15 @@ AddMathChannelDialog::AddMathChannelDialog(PlotDataMapRef &plotMapData, QWidget 
     ui->mathEquation->setFont(fixedFont);
     ui->snippetTextEdit->setFont(fixedFont);
 
+    QStringList numericPlotNames;
     for(const auto &p : plotMapData.numeric)
     {
         QString name = QString::fromStdString(p.first);
+        numericPlotNames.push_back(name);
+    }
+    numericPlotNames.sort(Qt::CaseInsensitive);
+    for(const QString& name : numericPlotNames)
+    {
         ui->linkedChannelCombobox->addItem(name);
         ui->curvesListWidget->addItem(name);
     }
@@ -49,6 +55,14 @@ void AddMathChannelDialog::accept()
 {
     try {
         std::string plotName = getName().toStdString();
+        if(_isNewPlot)
+        {
+            // check if name is unique
+            if(_plotMapData.numeric.count(plotName) != 0)
+            {
+                throw std::runtime_error("plot name already exists");
+            }
+        }
         CustomEquationPtr ce = std::make_shared<CustomEquation>(getLinkedData().toStdString(), plotName, getGlobalVars(), getEquation());
         PlotDataPtr newData = std::make_shared<PlotData>(plotName);
         ce->calc(_plotMapData, *newData);
@@ -98,6 +112,8 @@ void AddMathChannelDialog::setFromCustomEquation(CustomEquationPtr data)
     ui->pushButtonDone->setText("Update");
     ui->nameLineEdit->setText(QString::fromStdString(data->getName()));
     ui->nameLineEdit->setEnabled(false);
+
+    _isNewPlot = false;
 }
 
 CustomEquationPtr AddMathChannelDialog::getCustomEquationData() const
@@ -174,3 +190,4 @@ void AddMathChannelDialog::on_snippetsListWidget_doubleClicked(const QModelIndex
     ui->globalVarsTextField->setPlainText(snippet.globalVars);
     ui->mathEquation->setPlainText(snippet.equation);
 }
+
