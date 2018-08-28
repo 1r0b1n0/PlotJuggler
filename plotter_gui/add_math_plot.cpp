@@ -1,18 +1,18 @@
-#include "add_math_channel.h"
-#include "ui_add_math_channel.h"
+#include "add_math_plot.h"
+#include "ui_add_math_plot.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QFont>
 #include <QDomDocument>
 #include <QDomElement>
 #include <QFile>
-#include "custom_equation.h"
+#include "math_plot.h"
 #include "plotwidget.h"
 
-AddMathChannelDialog::AddMathChannelDialog(PlotDataMapRef &plotMapData, QWidget *parent) :
+AddMathPlotDialog::AddMathPlotDialog(PlotDataMapRef &plotMapData, QWidget *parent) :
     QDialog(parent),
     _plotMapData(plotMapData),
-    ui(new Ui::AddMathChannelDialog)
+    ui(new Ui::AddMathPlotDialog)
 {
     ui->setupUi(this);
 
@@ -41,17 +41,17 @@ AddMathChannelDialog::AddMathChannelDialog(PlotDataMapRef &plotMapData, QWidget 
     }
 }
 
-AddMathChannelDialog::~AddMathChannelDialog()
+AddMathPlotDialog::~AddMathPlotDialog()
 {
     delete ui;
 }
 
-void AddMathChannelDialog::setLinkedPlotName(const QString &linkedPlotName)
+void AddMathPlotDialog::setLinkedPlotName(const QString &linkedPlotName)
 {
     ui->linkedChannelCombobox->setCurrentText(linkedPlotName);
 }
 
-void AddMathChannelDialog::accept()
+void AddMathPlotDialog::accept()
 {
     try {
         std::string plotName = getName().toStdString();
@@ -79,32 +79,32 @@ void AddMathChannelDialog::accept()
     }
 }
 
-QString AddMathChannelDialog::getLinkedData() const
+QString AddMathPlotDialog::getLinkedData() const
 {
     return ui->linkedChannelCombobox->currentText();
 }
 
-QString AddMathChannelDialog::getGlobalVars() const
+QString AddMathPlotDialog::getGlobalVars() const
 {
     return ui->globalVarsTextField->toPlainText();
 }
 
-QString AddMathChannelDialog::getEquation() const
+QString AddMathPlotDialog::getEquation() const
 {
     return ui->mathEquation->toPlainText();
 }
 
-QString AddMathChannelDialog::getName() const
+QString AddMathPlotDialog::getName() const
 {
     return ui->nameLineEdit->text();
 }
 
-PlotDataPtr AddMathChannelDialog::getNewPlotData() const
+PlotDataPtr AddMathPlotDialog::getNewPlotData() const
 {
     return _newPlotData;
 }
 
-void AddMathChannelDialog::setFromCustomEquation(CustomEquationPtr data)
+void AddMathPlotDialog::setFromCustomEquation(CustomEquationPtr data)
 {
     ui->globalVarsTextField->setPlainText(data->getGlobalVars());
     ui->mathEquation->setPlainText(data->getEquation());
@@ -116,14 +116,14 @@ void AddMathChannelDialog::setFromCustomEquation(CustomEquationPtr data)
     _isNewPlot = false;
 }
 
-CustomEquationPtr AddMathChannelDialog::getCustomEquationData() const
+CustomEquationPtr AddMathPlotDialog::getCustomEquationData() const
 {
     return _customEquation;
 }
 
 
 
-void AddMathChannelDialog::on_curvesListWidget_doubleClicked(const QModelIndex &index)
+void AddMathPlotDialog::on_curvesListWidget_doubleClicked(const QModelIndex &index)
 {
     QString appendString = QString("$$%1$$").arg(ui->curvesListWidget->item(index.row())->text());
     if(ui->globalVarsTextField->hasFocus())
@@ -136,7 +136,7 @@ void AddMathChannelDialog::on_curvesListWidget_doubleClicked(const QModelIndex &
     }
 }
 
-const std::vector<AddMathChannelDialog::SnippetData> AddMathChannelDialog::getSnippets()
+const std::vector<AddMathPlotDialog::SnippetData> AddMathPlotDialog::getSnippets()
 {
     static bool firstRun = true;
     static std::vector<SnippetData> snippets;
@@ -177,14 +177,14 @@ const std::vector<AddMathChannelDialog::SnippetData> AddMathChannelDialog::getSn
     return snippets;
 }
 
-void AddMathChannelDialog::on_snippetsListWidget_currentRowChanged(int currentRow)
+void AddMathPlotDialog::on_snippetsListWidget_currentRowChanged(int currentRow)
 {
     SnippetData snippet = getSnippets().at(static_cast<size_t>(currentRow));
     QString desc = QString("%1\n\nfunction calc(x,y){\n%2\n}").arg(snippet.globalVars).arg(snippet.equation);
     ui->snippetTextEdit->setPlainText(desc);
 }
 
-void AddMathChannelDialog::on_snippetsListWidget_doubleClicked(const QModelIndex &index)
+void AddMathPlotDialog::on_snippetsListWidget_doubleClicked(const QModelIndex &index)
 {
     SnippetData snippet = getSnippets().at(static_cast<size_t>(index.row()));
     ui->globalVarsTextField->setPlainText(snippet.globalVars);

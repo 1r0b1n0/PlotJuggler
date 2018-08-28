@@ -19,7 +19,7 @@
 #include "PlotJuggler/dataloader_base.h"
 #include "PlotJuggler/statepublisher_base.h"
 #include "PlotJuggler/datastreamer_base.h"
-#include "custom_equation.h"
+#include "math_plot.h"
 
 namespace Ui {
 class MainWindow;

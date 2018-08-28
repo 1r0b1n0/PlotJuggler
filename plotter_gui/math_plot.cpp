@@ -1,7 +1,6 @@
-#include <custom_equation.h>
+#include "math_plot.h"
 #include <QJSEngine>
 #include <QFile>
-#include <add_math_channel.h>
 #include <QMessageBox>
 
 CustomEquation::CustomEquation(const std::string &linkedPlot, const std::string &plotName, const QString &globalVars, const QString &equation):

@@ -8,7 +8,7 @@
 #include <QStandardItemModel>
 #include <QTableView>
 
-#include "custom_equation.h"
+#include "math_plot.h"
 #include "tree_completer.h"
 
 class CustomSortedTableItem;

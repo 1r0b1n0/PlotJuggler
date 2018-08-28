@@ -1,17 +1,17 @@
-#ifndef ADDMATHCHANNELDIALOG_H
-#define ADDMATHCHANNELDIALOG_H
+#ifndef AddMathPlotDialog_H
+#define AddMathPlotDialog_H
 
 #include <QDialog>
 #include <QListWidgetItem>
 #include <qwt_plot_curve.h>
 #include "PlotJuggler/plotdata.h"
-#include "custom_equation.h"
+#include "math_plot.h"
 
 namespace Ui {
-class AddMathChannelDialog;
+class AddMathPlotDialog;
 }
 
-class AddMathChannelDialog : public QDialog
+class AddMathPlotDialog : public QDialog
 {
     Q_OBJECT
 
@@ -22,8 +22,8 @@ class AddMathChannelDialog : public QDialog
     };
 
 public:
-    explicit AddMathChannelDialog(PlotDataMapRef &plotMapData, QWidget *parent);
-    virtual ~AddMathChannelDialog() override;
+    explicit AddMathPlotDialog(PlotDataMapRef &plotMapData, QWidget *parent);
+    virtual ~AddMathPlotDialog() override;
 
     void setLinkedPlotName(const QString &linkedPlotName);
     void accept() override;
@@ -48,11 +48,11 @@ private:
     static const std::vector<SnippetData> getSnippets();
 
     PlotDataMapRef &_plotMapData;
-    Ui::AddMathChannelDialog *ui;
+    Ui::AddMathPlotDialog *ui;
 
     PlotDataPtr _newPlotData;
     CustomEquationPtr _customEquation;
     bool _isNewPlot = true;
 };
 
-#endif // ADDMATHCHANNELDIALOG_H
+#endif // AddMathPlotDialog_H

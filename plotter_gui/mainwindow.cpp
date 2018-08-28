@@ -36,7 +36,7 @@
 #include "selectlistdialog.h"
 #include "aboutdialog.h"
 #include "PlotJuggler/plotdata.h"
-#include "add_math_channel.h"
+#include "add_math_plot.h"
 
 
 MainWindow::MainWindow(const QCommandLineParser &commandline_parser, QWidget *parent) :
@@ -1455,7 +1455,7 @@ std::tuple<double, double, int> MainWindow::calculateVisibleRangeX()
 
 void MainWindow::addOrEditMathPlot(const std::string &name, bool edit)
 {
-    AddMathChannelDialog dialog(_mapped_plot_data, this);
+    AddMathPlotDialog dialog(_mapped_plot_data, this);
     if(!edit)
     {
         // add

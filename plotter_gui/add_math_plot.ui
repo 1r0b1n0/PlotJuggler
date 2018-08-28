@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AddMathChannelDialog</class>
- <widget class="QDialog" name="AddMathChannelDialog">
+ <class>AddMathPlotDialog</class>
+ <widget class="QDialog" name="AddMathPlotDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -209,7 +209,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>pushButtonDone</sender>
    <signal>clicked()</signal>
-   <receiver>AddMathChannelDialog</receiver>
+   <receiver>AddMathPlotDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -225,7 +225,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>pushButtonCancel</sender>
    <signal>clicked()</signal>
-   <receiver>AddMathChannelDialog</receiver>
+   <receiver>AddMathPlotDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
